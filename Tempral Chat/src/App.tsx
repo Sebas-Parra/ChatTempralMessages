@@ -12,7 +12,6 @@ type ChatMessage = {
   temporary?: boolean
   duration?: number
   remaining?: number
-  readBy: string[]
 }
 
 const SERVER_URL = 'http://localhost:5000'
@@ -38,27 +37,6 @@ function App() {
     })
 
     socket.on(
-      'chat_message',
-      (data: {
-        message_id: string
-        message: string
-        username: string
-        timeStamp: string
-      }) => {
-        setMessages((current) => [
-          ...current,
-          {
-            id: data.message_id,
-            message: data.message,
-            username: data.username,
-            timeStamp: data.timeStamp,
-            readBy: [],
-          },
-        ])
-      },
-    )
-
-    socket.on(
       'temp_message',
       (data: {
         message_id: string
@@ -77,22 +55,8 @@ function App() {
             temporary: true,
             duration: data.duration,
             remaining: data.duration,
-            readBy: [],
           },
         ])
-      },
-    )
-
-    socket.on(
-      'message_read_confirmation',
-      ({ messageId, username }: { messageId: string; username: string }) => {
-        setMessages((current) =>
-          current.map((item) =>
-            item.id === messageId && !item.readBy.includes(username)
-              ? { ...item, readBy: [...item.readBy, username] }
-              : item,
-          ),
-        )
       },
     )
 
@@ -126,7 +90,7 @@ function App() {
     setUsername(cleanUsername)
   }
 
-  function sendMessage(temporary = false) {
+  function sendMessage() {
     const cleanMessage = message.trim()
     if (!cleanMessage || !username) return
 
@@ -137,16 +101,8 @@ function App() {
       duration,
     }
 
-    socket.emit(temporary ? 'temp_message' : 'chat_message', payload)
+    socket.emit('temp_message', payload)
     setMessage('')
-  }
-
-  function markAsRead(item: ChatMessage) {
-    if (!username || item.username === username) return
-
-    socket.emit(item.temporary ? 'delete_temp_message' : 'message_read', {
-      messageId: item.id,
-    })
   }
 
   return (
@@ -194,21 +150,14 @@ function App() {
               </div>
               <p>{item.message}</p>
               <div className="message-actions">
-                {item.temporary && (
-                  <span>
-                    Temporal
-                    {typeof item.remaining === 'number'
-                      ? ` - ${item.remaining}s`
-                      : ''}
-                  </span>
-                )}
-                {!item.temporary && item.readBy.length > 0 && (
-                  <span>Leido por {item.readBy.join(', ')}</span>
-                )}
-                {item.username !== username && (
-                  <button type="button" onClick={() => markAsRead(item)}>
-                    {item.temporary ? 'Abrir' : 'Marcar leido'}
-                  </button>
+                <span>
+                  Temporal
+                  {typeof item.remaining === 'number'
+                    ? ` - ${item.remaining}s`
+                    : ''}
+                </span>
+                {typeof item.duration === 'number' && (
+                  <span>Duracion: {item.duration}s</span>
                 )}
               </div>
             </article>
@@ -222,7 +171,7 @@ function App() {
           className="composer"
           onSubmit={(event) => {
             event.preventDefault()
-            sendMessage(false)
+            sendMessage()
           }}
         >
           <input
@@ -243,13 +192,6 @@ function App() {
           </label>
           <button type="submit" disabled={!username}>
             Enviar
-          </button>
-          <button
-            type="button"
-            disabled={!username}
-            onClick={() => sendMessage(true)}
-          >
-            Temporal
           </button>
         </form>
       </section>

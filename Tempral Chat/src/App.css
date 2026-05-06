@@ -137,7 +137,7 @@ button:disabled {
 .composer {
   align-items: end;
   border-top: 1px solid var(--border);
-  grid-template-columns: minmax(180px, 1fr) 110px auto auto;
+  grid-template-columns: minmax(180px, 1fr) 110px auto;
   padding: 18px;
 }
 
