@@ -14,6 +14,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 usuarios = {}
 
 temp_messages_db = {}
+DEFAULT_MESSAGE_DURATION = 60
 
 def make_temp_message_payload(message_id, message):
     return {
@@ -21,18 +22,13 @@ def make_temp_message_payload(message_id, message):
         "message": message["message"],
         "username": message["user"],
         "timeStamp": message["timestamp"],
-        "duration": message["duration"],
-        "countdown_started": message["countdown_started"]
+        "duration": message["duration"]
     }
 
 def start_temp_message_countdown(message_id):
     if message_id not in temp_messages_db:
         return
 
-    if temp_messages_db[message_id]["countdown_started"]:
-        return
-
-    temp_messages_db[message_id]["countdown_started"] = True
     duration = temp_messages_db[message_id]["duration"]
 
     def countdown():
@@ -56,13 +52,19 @@ def index():
 @socketio.on("connect")
 def handle_connect():
     print(f'Nuevo cliente conectado {request.sid}')
+    emit("user_list", {"users": list(usuarios.values())})
 
 @socketio.on("set_username")
 def handle_set_username(data):
     username = data.get('username')
+    if not username:
+        return
+
     usuarios[request.sid] = username
     emit("user_joined", {"username": username}, broadcast=True, include_self=False)
-    emit("user_list", {"users": list(usuarios.values())}, broadcast=True)
+    user_list = {"users": list(usuarios.values())}
+    emit("user_list", user_list)
+    emit("user_list", user_list, broadcast=True, include_self=False)
 
     for message_id, message in list(temp_messages_db.items()):
         emit("temp_message", make_temp_message_payload(message_id, message))
@@ -81,33 +83,16 @@ def handle_disconnect():
 def handle_temp_message(data):
     message_id = f"temp_{request.sid}_{datetime.now().timestamp()}"
 
-    duration = data.get("duration", 10)
-
     temp_messages_db[message_id] = {
         "message": data.get("message"),
         "user": usuarios.get(request.sid),
         "timestamp": data.get("timeStamp"),
-        "duration": duration,
+        "duration": DEFAULT_MESSAGE_DURATION,
         "sender_sid": request.sid,
-        "seen_by": set(),
-        "countdown_started": False,
         "timer": None
     }
 
     emit("temp_message", make_temp_message_payload(message_id, temp_messages_db[message_id]), broadcast=True)
-
-@socketio.on("temp_message_seen")
-def handle_temp_message_seen(data):
-    message_id = data.get("messageId")
-    username = usuarios.get(request.sid)
-
-    if message_id not in temp_messages_db or not username:
-        return
-
-    if temp_messages_db[message_id]["sender_sid"] == request.sid:
-        return
-
-    temp_messages_db[message_id]["seen_by"].add(username)
     start_temp_message_countdown(message_id)
 
 if __name__ == "__main__":

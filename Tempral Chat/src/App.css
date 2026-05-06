@@ -4,7 +4,10 @@
     linear-gradient(90deg, var(--border) 1px, transparent 1px),
     var(--bg);
   background-size: 34px 34px;
-  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100svh;
+  overflow: hidden;
   text-align: left;
 }
 
@@ -73,7 +76,9 @@
   grid-template-columns: 318px minmax(0, 1fr);
   margin: 0 auto;
   max-width: 1280px;
-  min-height: calc(100svh - 83px);
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .sidebar {
@@ -83,6 +88,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
   padding: 16px;
 }
 
@@ -289,6 +296,7 @@ button:disabled {
   border-right: 1px solid var(--border);
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
   min-width: 0;
 }
 
@@ -314,6 +322,21 @@ button:disabled {
   background: var(--surface);
   border-color: var(--border-strong);
   justify-self: end;
+}
+
+.system-message {
+  background: var(--surface-strong);
+  justify-self: center;
+  max-width: min(420px, 100%);
+  padding: 8px 10px;
+}
+
+.system-message p {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .message:hover .message-meta strong,
@@ -379,7 +402,7 @@ button:disabled {
   border-top: 1px solid var(--border);
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(180px, 1fr) 112px auto;
+  grid-template-columns: minmax(180px, 1fr) auto;
   padding: 12px;
 }
 
@@ -397,7 +420,7 @@ button:disabled {
 
   .workspace {
     grid-template-columns: 1fr;
-    min-height: auto;
+    overflow: hidden;
   }
 
   .sidebar {
@@ -411,7 +434,7 @@ button:disabled {
 
   .chat-panel {
     border-right: 0;
-    min-height: 62svh;
+    min-height: 0;
   }
 
   .composer {
