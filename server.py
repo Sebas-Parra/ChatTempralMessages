@@ -55,7 +55,10 @@ def handle_chat_message(data):
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    username = usuarios.pop(request.sid)
+    username = usuarios.pop(request.sid, None)
+    if not username:
+        return
+
     print(f"Usuario desconectado: {request.sid} ({username})")
     emit("user_left", {"username": username}, broadcast=True)
     emit("user_list", {"users": list(usuarios.values())}, broadcast=True)
