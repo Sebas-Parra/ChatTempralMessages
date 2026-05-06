@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { io } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
@@ -12,6 +12,7 @@ type ChatMessage = {
   temporary?: boolean
   duration?: number
   remaining?: number
+  countdownStarted: boolean
 }
 
 const SERVER_URL = 'http://localhost:5000'
@@ -25,6 +26,7 @@ function App() {
   const [users, setUsers] = useState<string[]>([])
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [status, setStatus] = useState('Desconectado')
+  const usernameRef = useRef('')
 
   useEffect(() => {
     socket.connect()
@@ -44,19 +46,31 @@ function App() {
         username: string
         timeStamp: string
         duration: number
+        countdown_started: boolean
       }) => {
-        setMessages((current) => [
-          ...current,
-          {
-            id: data.message_id,
-            message: data.message,
-            username: data.username,
-            timeStamp: data.timeStamp,
-            temporary: true,
-            duration: data.duration,
-            remaining: data.duration,
-          },
-        ])
+        setMessages((current) => {
+          if (current.some((item) => item.id === data.message_id)) {
+            return current
+          }
+
+          return [
+            ...current,
+            {
+              id: data.message_id,
+              message: data.message,
+              username: data.username,
+              timeStamp: data.timeStamp,
+              temporary: true,
+              duration: data.duration,
+              remaining: data.duration,
+              countdownStarted: data.countdown_started,
+            },
+          ]
+        })
+
+        if (data.username !== usernameRef.current) {
+          socket.emit('temp_message_seen', { messageId: data.message_id })
+        }
       },
     )
 
@@ -65,7 +79,9 @@ function App() {
       ({ messageId, remaining }: { messageId: string; remaining: number }) => {
         setMessages((current) =>
           current.map((item) =>
-            item.id === messageId ? { ...item, remaining } : item,
+            item.id === messageId
+              ? { ...item, countdownStarted: true, remaining }
+              : item,
           ),
         )
       },
@@ -86,8 +102,9 @@ function App() {
     const cleanUsername = draftUsername.trim()
     if (!cleanUsername) return
 
-    socket.emit('set_username', { username: cleanUsername })
+    usernameRef.current = cleanUsername
     setUsername(cleanUsername)
+    socket.emit('set_username', { username: cleanUsername })
   }
 
   function sendMessage() {
@@ -107,94 +124,124 @@ function App() {
 
   return (
     <main className="chat-shell">
-      <aside className="sidebar">
-        <div>
-          <p className="eyebrow">{status}</p>
-          <h1>Tempral Chat</h1>
-        </div>
-
-        <form className="username-form" onSubmit={handleUsernameSubmit}>
-          <label htmlFor="username">Usuario</label>
-          <div className="inline-form">
-            <input
-              id="username"
-              value={draftUsername}
-              onChange={(event) => setDraftUsername(event.target.value)}
-              placeholder="Tu nombre"
-            />
-            <button type="submit">Entrar</button>
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">T</span>
+          <div>
+            <p className="eyebrow">Mensajes efimeros</p>
+            <h1>Tempral Chat</h1>
           </div>
-        </form>
-
-        <section>
-          <h2>Conectados</h2>
-          <ul className="user-list">
-            {users.map((user, index) => (
-              <li key={`${user}-${index}`}>{user}</li>
-            ))}
-            {users.length === 0 && <li>Aun no hay usuarios</li>}
-          </ul>
-        </section>
-      </aside>
-
-      <section className="chat-panel">
-        <div className="messages">
-          {messages.map((item) => (
-            <article
-              className={item.username === username ? 'message mine' : 'message'}
-              key={item.id}
-            >
-              <div className="message-meta">
-                <strong>{item.username}</strong>
-                <span>{item.timeStamp}</span>
-              </div>
-              <p>{item.message}</p>
-              <div className="message-actions">
-                <span>
-                  Temporal
-                  {typeof item.remaining === 'number'
-                    ? ` - ${item.remaining}s`
-                    : ''}
-                </span>
-                {typeof item.duration === 'number' && (
-                  <span>Duracion: {item.duration}s</span>
-                )}
-              </div>
-            </article>
-          ))}
-          {messages.length === 0 && (
-            <p className="empty-state">Escribe el primer mensaje.</p>
-          )}
         </div>
+        <span className={`status-pill ${status === 'Conectado' ? 'online' : ''}`}>
+          {status}
+        </span>
+      </header>
 
-        <form
-          className="composer"
-          onSubmit={(event) => {
-            event.preventDefault()
-            sendMessage()
-          }}
-        >
-          <input
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            placeholder={username ? 'Escribe un mensaje' : 'Primero entra con usuario'}
-            disabled={!username}
-          />
-          <label>
-            Segundos
+      <div className="workspace">
+        <aside className="sidebar">
+          <form className="session-card" onSubmit={handleUsernameSubmit}>
+            <label htmlFor="username">Usuario</label>
+            <div className="inline-form">
+              <input
+                id="username"
+                value={draftUsername}
+                onChange={(event) => setDraftUsername(event.target.value)}
+                placeholder="Tu nombre"
+              />
+              <button type="submit">Entrar</button>
+            </div>
+            {username && <p className="signed-in">Activo como {username}</p>}
+          </form>
+
+          <section className="side-section">
+            <div className="section-heading">
+              <h2>Conectados</h2>
+              <span>{users.length}</span>
+            </div>
+            <ul className="user-list">
+              {users.map((user, index) => (
+                <li key={`${user}-${index}`}>{user}</li>
+              ))}
+              {users.length === 0 && <li>Aun no hay usuarios</li>}
+            </ul>
+          </section>
+
+          <div className="doodle-card" aria-hidden="true">
+            <div className="doodle-clock">
+              <span></span>
+            </div>
+            <div className="doodle-lines">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </aside>
+
+        <section className="chat-panel">
+          <div className="messages">
+            {messages.map((item) => (
+              <article
+                className={item.username === username ? 'message mine' : 'message'}
+                key={item.id}
+              >
+                <div className="message-meta">
+                  <strong>{item.username}</strong>
+                  <span>{item.timeStamp}</span>
+                </div>
+                <p>{item.message}</p>
+                <div className="message-actions">
+                  <span>
+                    Temporal
+                    {item.countdownStarted && typeof item.remaining === 'number'
+                      ? ` - ${item.remaining}s`
+                      : ''}
+                  </span>
+                  {!item.countdownStarted && (
+                    <span>Esperando vista</span>
+                  )}
+                  {typeof item.duration === 'number' && (
+                    <span>Duracion: {item.duration}s</span>
+                  )}
+                </div>
+              </article>
+            ))}
+            {messages.length === 0 && (
+              <div className="empty-state">
+                <p>Escribe el primer mensaje.</p>
+              </div>
+            )}
+          </div>
+
+          <form
+            className="composer"
+            onSubmit={(event) => {
+              event.preventDefault()
+              sendMessage()
+            }}
+          >
             <input
-              min="3"
-              max="60"
-              type="number"
-              value={duration}
-              onChange={(event) => setDuration(Number(event.target.value))}
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder={username ? 'Escribe un mensaje' : 'Primero entra con usuario'}
+              disabled={!username}
             />
-          </label>
-          <button type="submit" disabled={!username}>
-            Enviar
-          </button>
-        </form>
-      </section>
+            <label>
+              Segundos
+              <input
+                min="3"
+                max="60"
+                type="number"
+                value={duration}
+                onChange={(event) => setDuration(Number(event.target.value))}
+              />
+            </label>
+            <button type="submit" disabled={!username}>
+              Enviar
+            </button>
+          </form>
+        </section>
+      </div>
     </main>
   )
 }
