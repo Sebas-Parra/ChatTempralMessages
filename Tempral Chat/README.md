@@ -1,75 +1,109 @@
-# React + TypeScript + Vite
+# Tempral Chat
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacion de chat temporal construida con React, TypeScript, Vite, Flask y Socket.IO. Los mensajes se envian en tiempo real y se eliminan automaticamente despues de un tiempo definido por el servidor.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20 o superior
+- npm
+- Python 3
+- pip
 
-## React Compiler
+## Instalacion del proyecto
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### 1. Clonar o abrir el proyecto
 
-Note: This will impact Vite dev & build performances.
+Ubicate en la carpeta principal del proyecto:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd "ChatTempral"
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Instalar el backend
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Desde la carpeta principal, crea y activa un entorno virtual:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+python3 -m venv venv
+source venv/bin/activate
 ```
+
+Instala las dependencias necesarias del servidor:
+
+```bash
+pip install flask flask-socketio flask-cors
+```
+
+Inicia el servidor:
+
+```bash
+python server.py
+```
+
+El backend se ejecutara en:
+
+```text
+http://localhost:5000
+```
+
+### 3. Instalar el frontend
+
+En otra terminal, entra a la carpeta del frontend:
+
+```bash
+cd "Tempral Chat"
+```
+
+Instala las dependencias de Node:
+
+```bash
+npm install
+```
+
+Inicia la aplicacion en modo desarrollo:
+
+```bash
+npm run dev
+```
+
+Vite mostrara la URL local para abrir la aplicacion, normalmente:
+
+```text
+http://localhost:5173
+```
+
+## Scripts disponibles
+
+Dentro de la carpeta `Tempral Chat` puedes ejecutar:
+
+```bash
+npm run dev
+```
+
+Levanta el servidor de desarrollo.
+
+```bash
+npm run build
+```
+
+Genera la version de produccion.
+
+```bash
+npm run preview
+```
+
+Permite revisar localmente la version compilada.
+
+```bash
+npm run lint
+```
+
+Ejecuta ESLint para revisar el codigo.
+
+## Uso
+
+1. Inicia primero el backend con `python server.py`.
+2. Inicia el frontend con `npm run dev`.
+3. Abre la URL de Vite en el navegador.
+4. Ingresa un nombre de usuario.
+5. Envia mensajes temporales en el chat.
